@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  jupyter-gpu:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    build:
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "8888:8888"
+      - "4040:4040"
+      - "6006:6006"
+    volumes:
+      - "${WORKSPACE_PATH}:/home/jovyan/workspace/"
+      - "${AZURE_PATH}:/home/jovyan/.azure/"
+    command:
+      - start-notebook.sh
+      - --ServerApp.root_dir=/home/jovyan/workspace
+    ipc: host
+    user: jovyan

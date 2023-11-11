@@ -1,0 +1,28 @@
+# this has one implicit stage and one implicit job
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: resourceGroupName
+    type: string
+    default: 'Experiments'
+  - name: subscriptionId
+    type: string
+
+stages:
+- stage: DeleteRG
+  displayName: Delete resource group
+  jobs:
+  - job: DRG
+    displayName: Delete resource group
+    variables:
+      env.name: ${{ parameters.resourceGroupName }}
+      subscriptionId: ${{ parameters.subscriptionId }}
+    steps:
+      - task: AzureCLI@2
+        displayName: "Run custom bash script"
+        inputs:
+          azureSubscription: ${{ parameters.subscriptionId }}
+          scriptType: 'bash'
+          scriptLocation: 'inline'
+          inlineScript: 'make delete_rg'

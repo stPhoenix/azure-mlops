@@ -1,0 +1,61 @@
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+  - name: resourceGroupName
+    type: string
+    default: 'Experiments'
+  - name: region
+    type: string
+    default: 'East-US'
+  - name: subscriptionId
+    type: string
+  - name: storageAccountName
+    type: string
+    default: 'tfstateexperiments'
+  - name: apiKey
+    type: string
+
+stages:
+- stage: Initial
+  displayName: Create initial infrastructure
+  jobs:
+  - job: CreateRG
+    displayName: Create resource group and storage account for terraform state
+    variables:
+      env.name: ${{ parameters.resourceGroupName }}
+      region: ${{ parameters.resourceGroupName }}
+      subscriptionId: ${{ parameters.subscriptionId }}
+      storageAccountName: ${{ parameters.storageAccountName }}
+    steps:
+      - task: TerraformInstaller@1
+        displayName: Install Terraform 1.5.7
+        inputs:
+          terraformVersion: 1.5.7
+      - task: AzureCLI@2
+        displayName: "Run custom bash script"
+        inputs:
+          azureSubscription: ${{ parameters.subscriptionId }}
+          scriptType: 'bash'
+          scriptLocation: 'inline'
+          inlineScript: 'make create_rg'
+  - job: CreateML
+    displayName: Create infrastructure for ML with terraform
+    variables:
+      env.name: ${{ parameters.resourceGroupName }}
+      deploy.api.key: ${{ parameters.apiKey }}
+    steps:
+      - task: AzureCLI@2
+        displayName: "Deploy infrastructure"
+        inputs:
+          azureSubscription: ${{ parameters.subscriptionId }}
+          scriptType: 'bash'
+          scriptLocation: 'inline'
+          inlineScript: 'make deploy'
+      - task: AzureCLI@2
+        displayName: "Register ml components"
+        inputs:
+          azureSubscription: ${{ parameters.subscriptionId }}
+          scriptType: 'bash'
+          scriptLocation: 'inline'
+          inlineScript: 'make register_azure'
