@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+from azure.core.exceptions import ResourceNotFoundError
+
 SOURCE_DIR = Path(__file__).parent.parent.parent.as_posix()
 sys.path.append(SOURCE_DIR)
 
@@ -20,7 +22,7 @@ def register_environments(ml_client: MLClient):
             try:
                 environment = ml_client.environments.get(name=e.name, label="latest")
                 version = int(environment.version) + 1
-            except Exception as exc:
+            except ResourceNotFoundError:
                 version = 1
             e.version = str(version)
             ml_client.environments.create_or_update(e)
@@ -35,7 +37,7 @@ def register_components(ml_client: MLClient):
             try:
                 component = ml_client.components.get(name=name)
                 version = int(component.version) + 1
-            except:
+            except ResourceNotFoundError:
                 version = 1
             ml_client.components.create_or_update(c, str(version))
             logging.info(f"Registered component {name}")
@@ -47,9 +49,9 @@ def register_pipelines(ml_client: MLClient):
         if name.endswith("_pipeline"):
             p = getattr(custom_pipelines, name)
             try:
-                pipeline = ml_client.pipelines.get(name=name)
+                pipeline = ml_client.components.get(name=name)
                 version = int(pipeline.version) + 1
-            except:
+            except ResourceNotFoundError:
                 version = 1
             ml_client.components.create_or_update(p, str(version))
             logging.info(f"Registered pipeline {name}")
