@@ -7,7 +7,7 @@ parameters:
     default: 'Experiments'
   - name: region
     type: string
-    default: 'East-US'
+    default: 'eastus'
   - name: subscriptionId
     type: string
   - name: storageAccountName
@@ -37,10 +37,11 @@ stages:
         inputs:
           azureSubscription: ${{ parameters.subscriptionId }}
           scriptType: 'bash'
-          scriptLocation: 'inline'
+          scriptLocation: 'inlineScript'
           inlineScript: 'make create_rg'
   - job: CreateML
     displayName: Create infrastructure for ML with terraform
+    dependsOn: CreateRG
     variables:
       env.name: ${{ parameters.resourceGroupName }}
       deploy.api.key: ${{ parameters.apiKey }}
@@ -50,12 +51,12 @@ stages:
         inputs:
           azureSubscription: ${{ parameters.subscriptionId }}
           scriptType: 'bash'
-          scriptLocation: 'inline'
+          scriptLocation: 'inlineScript'
           inlineScript: 'make deploy'
       - task: AzureCLI@2
         displayName: "Register ml components"
         inputs:
           azureSubscription: ${{ parameters.subscriptionId }}
           scriptType: 'bash'
-          scriptLocation: 'inline'
+          scriptLocation: 'inlineScript'
           inlineScript: 'make register_azure'
