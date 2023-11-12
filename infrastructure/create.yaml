@@ -1,4 +1,5 @@
 pool:
+  name: Default
   vmImage: 'ubuntu-latest'
 
 parameters:
@@ -15,6 +16,9 @@ parameters:
     default: 'tfstateexperiments'
   - name: apiKey
     type: string
+  - name: containerName
+    type: string
+    default: 'ml-tfstate'
 
 stages:
 - stage: Initial
@@ -24,14 +28,11 @@ stages:
     displayName: Create resource group and storage account for terraform state
     variables:
       env.name: ${{ parameters.resourceGroupName }}
-      region: ${{ parameters.resourceGroupName }}
+      region: ${{ parameters.region }}
       subscriptionId: ${{ parameters.subscriptionId }}
       storageAccountName: ${{ parameters.storageAccountName }}
+      containerName: ${{ parameters.containerName }}
     steps:
-      - task: TerraformInstaller@1
-        displayName: Install Terraform 1.5.7
-        inputs:
-          terraformVersion: 1.5.7
       - task: AzureCLI@2
         displayName: "Run custom bash script"
         inputs:
@@ -40,23 +41,53 @@ stages:
           scriptLocation: 'inlineScript'
           inlineScript: 'make create_rg'
   - job: CreateML
-    displayName: Create infrastructure for ML with terraform
     dependsOn: CreateRG
+    displayName: Create infrastructure for ML with terraform
     variables:
       env.name: ${{ parameters.resourceGroupName }}
       deploy.api.key: ${{ parameters.apiKey }}
+      containerName: ${{ parameters.containerName }}
+      subscriptionId: ${{ parameters.subscriptionId }}
     steps:
-      - task: AzureCLI@2
-        displayName: "Deploy infrastructure"
+      - task: TerraformInstaller@1
+        displayName: Install Terraform 1.5.7
         inputs:
-          azureSubscription: ${{ parameters.subscriptionId }}
-          scriptType: 'bash'
-          scriptLocation: 'inlineScript'
-          inlineScript: 'make deploy'
+          terraformVersion: 1.5.7
+      - task: TerraformTaskV4@4
+        displayName: "Init terraform"
+        inputs:
+          workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+          provider: 'azurerm'
+          command: 'init'
+          backendServiceArm: ${{ parameters.subscriptionId }}
+          backendAzureRmResourceGroupName: ${{ parameters.resourceGroupName }}
+          backendAzureRmStorageAccountName: ${{ parameters.storageAccountName }}
+          backendAzureRmContainerName: ${{ parameters.containerName }}
+          backendAzureRmKey: 'terraform.tfstate'
+      
+      - task: TerraformTaskV4@4
+        displayName: "Deploy ml infrastructure"
+        inputs:
+          workingDirectory: $(System.DefaultWorkingDirectory)/infrastructure
+          provider: 'azurerm'
+          command: 'apply'
+          backendServiceArm: ${{ parameters.subscriptionId }}
+          backendAzureRmResourceGroupName: ${{ parameters.resourceGroupName }}
+          backendAzureRmStorageAccountName: ${{ parameters.storageAccountName }}
+          backendAzureRmContainerName: ${{ parameters.containerName }}
+          environmentServiceNameAzureRM: ${{ parameters.subscriptionId }}
+          backendAzureRmKey: 'terraform.tfstate'
+          commandOptions: -var-file=variables/${{ parameters.resourceGroupName }}.tfvars -var="api-key=${{ parameters.apiKey }}" -auto-approve
+
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '3.8'
+          architecture: 'x64'
+
       - task: AzureCLI@2
         displayName: "Register ml components"
         inputs:
           azureSubscription: ${{ parameters.subscriptionId }}
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
-          inlineScript: 'make register_azure'
+          inlineScript: 'python3.8 -m pip install poetry && poetry install && make register_azure'

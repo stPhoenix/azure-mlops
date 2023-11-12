@@ -2,6 +2,7 @@
 
 # Add this line to make the script exit on any command failure
 set -e
+set -x
 
 # Check if the Azure CLI is installed
 if ! command -v az &> /dev/null; then
