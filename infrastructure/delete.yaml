@@ -1,5 +1,6 @@
 # this has one implicit stage and one implicit job
 pool:
+  name: Default
   vmImage: 'ubuntu-latest'
 
 parameters:
@@ -24,5 +25,5 @@ stages:
         inputs:
           azureSubscription: ${{ parameters.subscriptionId }}
           scriptType: 'bash'
-          scriptLocation: 'inline'
+          scriptLocation: 'inlineScript'
           inlineScript: 'make delete_rg'

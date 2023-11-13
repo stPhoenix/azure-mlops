@@ -19,6 +19,8 @@ For local development:
 
   - STORAGEACCOUNTNAME= name of the storage account where tfstate container is placed
 
+  - CONTAINERNAME= name of the container for terraform state file
+
 2. You can start docker container by running:
 - ```shell
   docker compose up
@@ -36,11 +38,15 @@ make export_requirements
 make register_azure
 ```
 
-5. You can run on local machine - head over to notebooks/local.ipynb
-6. To run on azure - download config.json from azure ml studio and place it in the root of the repository
-7. Then head over to notebooks/pipeline.ipynb
+5. To deploy with azure devops:
+    - In azure devops create a service connection with the name of subscription id
+    - Install terraform extension from marketplace
+    - Azure devops pipelines files located in the infrastructure folder (create.yaml and delete.yaml)
+6. You can run on local machine - head over to notebooks/local.ipynb
+7. To run on azure - download config.json from azure ml studio and place it in the root of the repository
+8. Then head over to notebooks/pipeline.ipynb
 
-8. To delete everything from azure run make command:
+9. To delete everything from azure run make command:
 ```shell
 make delete_rg
 ```
