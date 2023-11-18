@@ -190,8 +190,9 @@ resource "azurerm_machine_learning_datastore_datalake_gen2" "raw" {
   name                  = "raw"
   workspace_id          = azurerm_machine_learning_workspace.workspace.id
   storage_container_id  = data.azurerm_storage_container.fetched-container.resource_manager_id
-  service_data_identity = "WorkspaceSystemAssignedIdentity"
+  service_data_identity = "WorkspaceUserAssignedIdentity"
   tags                  = local.tags
+
 
 
 }
@@ -200,7 +201,7 @@ resource "azurerm_machine_learning_datastore_datalake_gen2" "cleaned" {
   name                  = "cleaned"
   workspace_id          = azurerm_machine_learning_workspace.workspace.id
   storage_container_id  = data.azurerm_storage_container.cleaned-container.resource_manager_id
-  service_data_identity = "WorkspaceSystemAssignedIdentity"
+  service_data_identity = "WorkspaceUserAssignedIdentity"
   tags                  = local.tags
 }
 

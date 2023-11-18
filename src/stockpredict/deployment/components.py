@@ -11,11 +11,12 @@ from azure.ai.ml import Input, Output
 from azure.ai.ml.constants import AssetTypes as _, InputOutputModes as IOMode
 from azure.ai.ml.entities import Model, ResourceConfiguration, ManagedOnlineDeployment, CodeConfiguration, \
     ManagedOnlineEndpoint
-from stockpredict.deployment.environments import ENV_NAME
+from stockpredict.deployment.environments import ENV_NAME, default_environment
 import logging
 from azure.ai.ml import MLClient
 from azure.identity import ManagedIdentityCredential
 from stockpredict.settings import MODEL_NAME, OUTPUT_MODEL_METADA_FILE
+from stockpredict.util.dto import ModelMetadata
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -70,10 +71,7 @@ def register_model_component(
     )
     registered_model = ml_client.models.create_or_update(model)
 
-    info = {
-        "name": model.name,
-        "version": model.version
-    }
+    info = ModelMetadata(name=model.name, version=model.version)
 
     with open(os.path.join(output_metadata, OUTPUT_MODEL_METADA_FILE), "w", encoding="utf-8") as f:
         f.write(json.dumps(info))
@@ -102,9 +100,10 @@ def deploy_model_component(
                          workspace_name=workspace_name)
 
     with open(os.path.join(input_model, OUTPUT_MODEL_METADA_FILE), "r", encoding="utf-8") as f:
-        model_info = json.loads(f.read())
+        data = json.loads(f.read())
+        model_info = ModelMetadata(*data)
 
-    model = ml_client.models.get(name=model_info["name"], version=model_info["version"])
+    model = ml_client.models.get(name=model_info.name, version=model_info.version)
 
     endpoint = ManagedOnlineEndpoint(
         name=endpoint_name,
@@ -120,7 +119,7 @@ def deploy_model_component(
         endpoint_name=endpoint_name,
         name=deployment_name,
         model=model,
-        environment=ENV_NAME,
+        environment=default_environment,
         code_configuration=CodeConfiguration(
             code=SOURCE_DIR, scoring_script="stockpredict/inference/stock.py"
         ),

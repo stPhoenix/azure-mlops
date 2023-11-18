@@ -29,7 +29,9 @@ def normalize(df: DataFrame) -> DataFrame:
         }
     ).withColumns({
         **{key: (F.col(key) - F.col(p_25.format(key=key))) / (F.col(p_75.format(key=key)) -  F.col(p_25.format(key=key))) for key in columns if key not in NETWORK_OUT_LABELS}
-    })).drop(*[p_25.format(key=key) for key in columns if key not in NETWORK_OUT_LABELS], *[p_75.format(key=key) for key in columns if key not in NETWORK_OUT_LABELS])
+    })).drop(*[p_25.format(key=key) for key in columns if key not in NETWORK_OUT_LABELS],
+             *[p_75.format(key=key) for key in columns if key not in NETWORK_OUT_LABELS],
+             "partkey")
 
     df = df.fillna(0.0)
 
