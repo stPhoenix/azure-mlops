@@ -1,6 +1,6 @@
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml.constants import AssetTypes as _, InputOutputModes as IOMode
-from azure.ai.ml import spark, Input, Output, ManagedIdentityConfiguration
+from azure.ai.ml import spark, Input, Output, ManagedIdentityConfiguration, UserIdentityConfiguration
 from azure.ai.ml.exceptions import ValidationException
 
 from stockpredict.deployment.components import (pytorch_train_component, register_model_component, deploy_model_component)
@@ -11,6 +11,7 @@ SOURCE_DIR = Path(__file__).parent.parent.parent.as_posix()
 spark_etl_component = spark(
     experiment_name="ETL",
     display_name="Spark Job",
+    identity=ManagedIdentityConfiguration(),
     code=SOURCE_DIR,
     entry={"file": "stockpredict/etl/cleaner.py"},
     driver_cores=1,
@@ -36,6 +37,7 @@ spark_etl_component = spark(
 spark_fetcher_component = spark(
     experiment_name="Fetcher",
     display_name="Spark Job",
+    identity=ManagedIdentityConfiguration(),
     code=SOURCE_DIR,
     entry={"file": "stockpredict/fetcher/main.py"},
     driver_cores=1,
@@ -67,11 +69,12 @@ def etl_pipeline(
         output_data: Input(type=_.URI_FOLDER, mode=IOMode.DIRECT),
 ):
     spark_step = spark_etl_component(input_data=input_data, output_data=output_data)
+    spark_step.identity = ManagedIdentityConfiguration()
 
     try:
         output = output_data.path
     except ValidationException:
-        output = "azureml://datastores/cleaned/paths/"
+        output = "azureml://datastores/cleaned/paths/data"
 
     spark_step.outputs.clean_data = Output(type=_.URI_FOLDER, mode=IOMode.DIRECT, path=output)
 
@@ -89,6 +92,7 @@ def fetch_data_pipeline(
 ):
     fetch_data_step = spark_fetcher_component(input_path=input_path, markers=markers, az_kv_name=keyvault_name,
                                               az_api_sname=api_secret_name)
+    fetch_data_step.identity = ManagedIdentityConfiguration()
     try:
         output = input_path.path
     except ValidationException:
@@ -121,12 +125,14 @@ def train_register_pipeline(
                                         batch_size=batch_size,
                                         shuffle=shuffle,
                                         )
+    train_job.identity = UserIdentityConfiguration()
     register_job = register_model_component(input_model=train_job.outputs.output_model,
                                             model_name=model_name,
                                             subscription_id=subscription_id,
                                             resource_group=resource_group,
                                             workspace_name=workspace_name,
                                             client_id=client_id)
+    register_job.identity = ManagedIdentityConfiguration(client_id=client_id)
 
     return {
         "model_dir": train_job.outputs.output_model,
@@ -151,23 +157,27 @@ def fetch_etl_train_register_deploy_pipeline(
         keyvault_name: Input(type="string", default="keyvault-name"),
 ):
     fetch_data = fetch_data_pipeline(input_path=input_data, markers=markers, keyvault_name=keyvault_name)
+    fetch_data.identity = ManagedIdentityConfiguration(client_id=client_id)
     spark_job = etl_pipeline(input_data=fetch_data.outputs.data, output_data=output_data)
+    spark_job.identity = ManagedIdentityConfiguration(client_id=client_id)
     train_job = pytorch_train_component(input_data=spark_job.outputs.clean_data,
                                         epochs=epochs,
                                         learning_rate=learning_rate,
                                         batch_size=batch_size,
                                         shuffle=shuffle,
                                         )
-    train_job.identity = ManagedIdentityConfiguration(client_id=client_id)
+    train_job.identity = UserIdentityConfiguration()
     register_job = register_model_component(input_model=train_job.outputs.output_model,
                                             model_name=model_name,
                                             subscription_id=subscription_id,
                                             resource_group=resource_group,
                                             workspace_name=workspace_name,
                                             client_id=client_id)
+    register_job.identity = ManagedIdentityConfiguration(client_id=client_id)
     deploy_job = deploy_model_component(input_model=register_job.outputs.output_metadata,
                                         subscription_id=subscription_id,
                                         resource_group=resource_group,
                                         workspace_name=workspace_name,
                                         client_id=client_id,
                                         keyvault_name=keyvault_name)
+    deploy_job.identity = ManagedIdentityConfiguration(client_id=client_id)

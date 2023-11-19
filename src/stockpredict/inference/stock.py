@@ -17,7 +17,7 @@ from stockpredict.settings import MODEL_NAME, DTYPE, DataColumns, AZURE_API_SECR
 from stockpredict.util.helpers import get_api_key
 from stockpredict.inference.data_fetcher import DataFetcher
 from stockpredict.fetcher.api_client import FMPApi
-from collections import namedtuple
+from stockpredict.util.dto import InferenceRequest
 import numpy as np
 
 device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
@@ -52,8 +52,7 @@ def run(raw_data):
     In the example we extract the data from the json input and call the scikit-learn model's predict()
     method and return the result back
     """
-    Request = namedtuple("Request", ["symbol", "start_date", "end_date"])
-    data = Request(**json.loads(raw_data))
+    data = InferenceRequest(**json.loads(raw_data))
 
     api_key = get_api_key(keyvault_name=AZURE_KEYVAULT_NAME, secret_name=AZURE_API_SECRET_NAME)
 
