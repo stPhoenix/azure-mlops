@@ -1,4 +1,6 @@
-# this has one implicit stage and one implicit job
+# A pipeline with no CI trigger
+trigger: none
+
 pool:
   name: Default
   vmImage: 'ubuntu-latest'
