@@ -21,16 +21,17 @@ For local development:
 
   - CONTAINERNAME= name of the container for terraform state file
 
-2. You can start docker container by running:
+2. In the infrastructure folder create .conf and .tfvars files in configs and variables folder with the name of resource group you are using
+3. You can start docker container by running:
 - ```shell
   docker compose up
 
 - jupyter notebook will start at http://127.0.0.1/lab
-3. Or for local interpreter:
+4. Or for local interpreter:
 - ```shell
   poetry install
 
-4. To deploy on azure run make commands:
+5. To deploy on azure run make commands:
 ```shell
 make create_rg
 make deploy
@@ -38,15 +39,15 @@ make export_requirements
 make register_azure
 ```
 
-5. To deploy with azure devops:
+6. To deploy with azure devops:
     - In azure devops create a service connection with the name of subscription id
     - Install terraform extension from marketplace
     - Azure devops pipelines files located in the infrastructure folder (create.yaml and delete.yaml)
-6. You can run on local machine - head over to notebooks/local.ipynb
-7. To run on azure - download config.json from azure ml studio and place it in the root of the repository
-8. Then head over to notebooks/pipeline.ipynb
+7. You can run on local machine - head over to notebooks/local.ipynb
+8. To run on azure - download config.json from azure ml studio and place it in the root of the repository
+9. Then head over to notebooks/pipeline.ipynb
 
-9. To delete everything from azure run make command:
+10. To delete everything from azure run make command:
 ```shell
 make delete_rg
 ```
