@@ -10,6 +10,7 @@ ENV PYTHONPATH=$PYTHONPATH:/home/jovyan/workspace/src
 RUN pip install --upgrade poetry ; poetry config virtualenvs.create false
 
 COPY pyproject.toml /home/jovyan/workspace/pyproject.toml
+COPY poetry.lock /home/jovyan/workspace/poetry.lock
 
 WORKDIR /home/jovyan/workspace
 RUN poetry install
