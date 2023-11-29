@@ -1,6 +1,7 @@
 # Azure MLOps project
 
 This project intended to show a complete ml pipeline for azure with python.
+Neural network trained to predict stock prices.
 
 ### Usage
 For local development:
